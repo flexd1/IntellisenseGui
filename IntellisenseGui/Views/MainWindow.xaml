@@ -60,7 +60,11 @@
 
 
         <StackPanel Grid.Row="1" Orientation="Horizontal">
-            <TextBox Name="tbFile" Width="500" />
+            <TextBox Name="tbFile" Width="500">
+                <TextBox.InputBindings>
+                    <KeyBinding Command="{Binding AddFileCommand}" CommandParameter="{Binding ElementName=tbFile, Path=Text}" Key="Enter" />
+                </TextBox.InputBindings>
+            </TextBox>
             <Button
                 Command="{Binding AddFileCommand}"
                 CommandParameter="{Binding ElementName=tbFile, Path=Text}"
