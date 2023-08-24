@@ -1,0 +1,1 @@
+{" to throw an exception when a date being converted to or from JSON\r\n            occurred before Unix epoch. The default value is ":"在将日期转换为 JSON 或从 JSON 转换时抛出异常\r\n            发生在 Unix 纪元之前。默认值为\r\n"}

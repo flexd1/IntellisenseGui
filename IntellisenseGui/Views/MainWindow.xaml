@@ -1,0 +1,91 @@
+﻿<Window
+    x:Class="IntellisenseGui.Views.MainWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:i="http://schemas.microsoft.com/xaml/behaviors"
+    xmlns:prism="http://prismlibrary.com/"
+    Title="{Binding Title}"
+    Width="700"
+    Height="350"
+    prism:ViewModelLocator.AutoWireViewModel="True">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="auto" />
+            <RowDefinition Height="auto" />
+            <RowDefinition />
+        </Grid.RowDefinitions>
+
+        <!--  选项框  -->
+        <StackPanel Orientation="Horizontal">
+            <CheckBox
+                VerticalAlignment="Center"
+                Content="是否更新字典文件"
+                IsChecked="{Binding IsUpdateDirectory}" />
+            <TextBlock
+                Margin="10,0"
+                VerticalAlignment="Center"
+                Text="翻译模式:" />
+            <ComboBox VerticalAlignment="Center" SelectedIndex="0">
+                <ComboBoxItem Content="翻译并替换文件" />
+                <ComboBoxItem Content="仅翻译" />
+            </ComboBox>
+            <TextBlock
+                Margin="10,0"
+                VerticalAlignment="Center"
+                Text="替换规则:" />
+            <ComboBox VerticalAlignment="Center" SelectedIndex="0">
+                <ComboBoxItem Content="生成语言文件夹" />
+                <ComboBoxItem Content="仅生成翻译文件不替换" />
+                <ComboBoxItem Content="替换并生成备份文件" />
+            </ComboBox>
+            <ComboBox
+                VerticalAlignment="Center"
+                ItemsSource="{Binding ChangeModeList}"
+                SelectedIndex="{Binding ChangeModeIndex}" />
+
+        </StackPanel>
+        <StackPanel HorizontalAlignment="Right" Orientation="Horizontal">
+            <Button
+                x:Name="clear"
+                Margin="10"
+                Padding="10"
+                Command="{Binding ClearCommand}"
+                Content="清空" />
+            <Button
+                Margin="10"
+                Padding="10"
+                Command="{Binding StartCommand}"
+                Content="执行" />
+        </StackPanel>
+
+
+        <StackPanel Grid.Row="1" Orientation="Horizontal">
+            <TextBox Name="tbFile" Width="500" />
+            <Button
+                Command="{Binding AddFileCommand}"
+                CommandParameter="{Binding ElementName=tbFile, Path=Text}"
+                Content="添加" />
+        </StackPanel>
+        <!--  内容区  -->
+        <ListBox
+            x:Name="pathList"
+            Grid.Row="2"
+            AllowDrop="True"
+            ItemsSource="{Binding PathList}">
+            <i:Interaction.Triggers>
+                <i:EventTrigger EventName="Drop">
+                    <prism:InvokeCommandAction Command="{Binding DropFileCommand}" />
+                </i:EventTrigger>
+            </i:Interaction.Triggers>
+            <ListBox.ItemTemplate>
+                <DataTemplate>
+                    <StackPanel Orientation="Horizontal">
+                        <Button Margin="2,0" Content="X" />
+                        <TextBlock Text="{Binding}" />
+                    </StackPanel>
+                </DataTemplate>
+            </ListBox.ItemTemplate>
+        </ListBox>
+        <!--<ContentControl prism:RegionManager.RegionName="ContentRegion" />-->
+    </Grid>
+</Window>
