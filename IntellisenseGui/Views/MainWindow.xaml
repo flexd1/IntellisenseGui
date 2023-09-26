@@ -13,6 +13,7 @@
             <RowDefinition Height="auto" />
             <RowDefinition Height="auto" />
             <RowDefinition />
+            <RowDefinition />
         </Grid.RowDefinitions>
 
         <!--  选项框  -->
@@ -58,7 +59,7 @@
                 Content="执行" />
         </StackPanel>
 
-
+        
         <StackPanel Grid.Row="1" Orientation="Horizontal">
             <TextBox Name="tbFile" Width="500">
                 <TextBox.InputBindings>
@@ -90,6 +91,7 @@
                 </DataTemplate>
             </ListBox.ItemTemplate>
         </ListBox>
+        <TextBox Text="{Binding LogText,Mode=TwoWay}" TextWrapping="Wrap" AcceptsReturn="True" VerticalScrollBarVisibility="Visible" IsReadOnly="True" Grid.Row="3" />
         <!--<ContentControl prism:RegionManager.RegionName="ContentRegion" />-->
     </Grid>
 </Window>

@@ -1,4 +1,5 @@
 ﻿using GTranslate.Translators;
+using IntellisenseGui.ViewModels;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -50,17 +51,18 @@ class Translator
     /// 创建文件夹模式，使用的文件夹名
     /// </summary>
     public static string LanguageDirectoryName { get; set; } = "zh-cn";
+
     public static void Execute(string path)
     {
         var translateData = LoadTranslateData();
-        Debug.WriteLine($"已载入字典文件共：{translateData.Count}项");
-        Debug.WriteLine("请输入需要翻译的文件夹路径（会自动扫描子目录内的文件）");
+        LogPrint($"已载入字典文件共：{translateData.Count}项");
+        LogPrint("请输入需要翻译的文件夹路径（会自动扫描子目录内的文件）");
 
-        //Debug.WriteLine("是否更新字典文件?(y/n)");
+        //LogPrint("是否更新字典文件?(y/n)");
         if (IsUpdateDirectory)
         {
             var source = new System.Collections.Concurrent.ConcurrentQueue<string>(LoadXmlData(path).Where(k => translateData.ContainsKey(k) == false));
-            Debug.WriteLine($"载入等待翻译的语句共计：{source.Count()}项");
+            LogPrint($"载入等待翻译的语句共计：{source.Count()}项");
             var thread_num = 5;
             var temp_dic = new System.Collections.Concurrent.ConcurrentDictionary<string, string>();
             var task_list = new List<Task>();
@@ -88,7 +90,7 @@ class Translator
                             var result_dic = AnalyzeText(array, result.Translation);
                             foreach (var item in result_dic)
                             {
-                                Debug.WriteLine($"{temp_dic.Count}/{source.Count}\t{item.Key}\t{item.Value}");
+                                LogPrint($"{temp_dic.Count}/{source.Count}\t{item.Key}\t{item.Value}");
                                 translateData[item.Key] = item.Value;
                                 temp_dic[item.Key] = item.Value;
                                 if (temp_dic.Count > 10000)
@@ -107,7 +109,7 @@ class Translator
                         }
                         catch (Exception ex)
                         {
-                            Debug.WriteLine(ex.Message);
+                            LogPrint(ex.Message);
                         }
                     }
                 }, TaskCreationOptions.LongRunning);
@@ -123,15 +125,15 @@ class Translator
                 temp_dic.Clear();
             }
 
-            Debug.WriteLine("更新字典完成");
+            LogPrint("更新字典完成");
         }
-        Debug.WriteLine("使用字典翻译xml文件?(Y/N)");
+        LogPrint("使用字典翻译xml文件?(Y/N)");
 
         //执行翻译
         if (true)
         {
             TranslateXml(translateData, path);
-            Debug.WriteLine("翻译完成，请检查translate文件夹，如需使用请手动复制替换原有文件。");
+            LogPrint("翻译完成，请检查translate文件夹，如需使用请手动复制替换原有文件。");
         }
 
     }
@@ -223,7 +225,7 @@ class Translator
     public static void SaveDataFile(IEnumerable<KeyValuePair<string, string>> temp_dic)
     {
         System.IO.File.WriteAllText($@"..\..\..\Data\{System.Environment.GetEnvironmentVariable("UserName").ToString()}_{DateTime.Now.ToString("yyyyMMddHHmmssfff")}.json", Newtonsoft.Json.JsonConvert.SerializeObject(temp_dic));
-        Debug.WriteLine("写入json文件完成");
+        LogPrint("写入json文件完成");
     }
 
     /// <summary>
@@ -246,7 +248,7 @@ class Translator
                     continue;
 
                 var fileInfo = new System.IO.FileInfo(filename);
-                Debug.WriteLine("output " + fileInfo.Name);
+                LogPrint("output " + fileInfo.Name);
                 //var outPath = filename.Substring(path.Length, filename.Length - path.Length - fileInfo.Name.Length - 1);
                 //System.IO.Directory.CreateDirectory(@$".\translate\{outPath}");
                 //System.IO.Directory.CreateDirectory(@$".\backup\{outPath}");
@@ -297,7 +299,7 @@ class Translator
             catch (Exception ex)
             {
                 MessageBox.Show(ex.Message, "错误", MessageBoxButton.OK, MessageBoxImage.Error);
-                Debug.WriteLine(ex.Message);
+                LogPrint(ex.Message);
             }
         }
 
@@ -317,7 +319,7 @@ class Translator
 
         foreach (var fileName in AllFileName)
         {
-            Debug.WriteLine($"load {fileName}");
+            LogPrint($"load {fileName}");
             try
             {
                 XmlDocument doc = new XmlDocument();
@@ -334,7 +336,7 @@ class Translator
             }
             catch (Exception ex)
             {
-                Debug.WriteLine(ex.Message);
+                LogPrint(ex.Message);
             }
         }
 
@@ -386,7 +388,7 @@ class Translator
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"载入{filename}文件出现异常:{ex.Message}\r\n{ex.StackTrace}");
+                LogPrint($"载入{filename}文件出现异常:{ex.Message}\r\n{ex.StackTrace}");
             }
         }
         return result;
@@ -431,5 +433,19 @@ class Translator
             MessageBox.Show("路径有误请重新输入", "提示", MessageBoxButton.OK, MessageBoxImage.Error);
         }
         return AllFileName;
+    }
+
+    // 日志输出
+    public static void LogPrint(string text)
+    {
+        Debug.WriteLine(text);
+        _mainVM.LogText += $"{DateTime.Now.ToLongTimeString()}  {text}\r\n";
+    }
+
+    // 获取MainWindowViewModel实例
+    private static MainWindowViewModel _mainVM;
+    public static void GetMainVM(MainWindowViewModel VM)
+    {
+        _mainVM = VM;
     }
 }

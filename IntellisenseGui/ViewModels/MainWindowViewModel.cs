@@ -12,6 +12,8 @@ using System.Linq;
 using System.Diagnostics;
 using System.Runtime.ConstrainedExecution;
 using System.Windows.Shapes;
+using System.Text;
+using DryIoc;
 
 namespace IntellisenseGui.ViewModels
 {
@@ -39,6 +41,29 @@ namespace IntellisenseGui.ViewModels
             get { return _isUpdateDirectory; }
             set { SetProperty(ref _isUpdateDirectory, value); }
         }
+
+        // 日志输出
+
+
+        private StringBuilder _logTemp = new();
+
+        public StringBuilder LogTemp
+        {
+            get { return _logTemp; }
+            set { _logTemp = value; _logText = value.ToString(); }
+        }
+
+
+        // 日志输出
+        private string _logText;
+        public string LogText
+        {
+            get
+            {
+                return _logText;
+            }
+            set { SetProperty(ref _logText, value); }
+        }
         #endregion
         /// <summary>
         /// 拖拽文件获取路径
@@ -58,7 +83,7 @@ namespace IntellisenseGui.ViewModels
         /// <summary>
         /// 替换模式列表
         /// </summary>
-        public List<string> ChangeModeList { get;set; }
+        public List<string> ChangeModeList { get; set; }
         private int changeModeIndex;
         public int ChangeModeIndex
         {
@@ -67,6 +92,9 @@ namespace IntellisenseGui.ViewModels
         }
         public MainWindowViewModel()
         {
+            // 传实例
+            Translator.GetMainVM(this);
+
             // 拖拽文件进入listbox
             DropFileCommand = new DelegateCommand<DragEventArgs>(DropFile);
 
@@ -88,6 +116,7 @@ namespace IntellisenseGui.ViewModels
 
                 sw.Stop();
                 Debug.WriteLine("===运行时间===" + sw.Elapsed.ToString());
+                MessageBox.Show("执行完成", "提示", MessageBoxButton.OK);
             });
 
             // 添加文件
