@@ -84,12 +84,18 @@ namespace IntellisenseGui.ViewModels
         /// 替换模式列表
         /// </summary>
         public List<string> ChangeModeList { get; set; }
-        private int changeModeIndex;
-        public int ChangeModeIndex
+
+        /// <summary>
+        /// 替换模式
+        /// </summary>
+        private string changeMode;
+
+        public string ChangeMode
         {
-            get { return changeModeIndex; }
-            set { SetProperty(ref changeModeIndex, value); }
+            get { return changeMode; }
+            set { SetProperty(ref changeMode, value); }
         }
+
         public MainWindowViewModel()
         {
             // 传实例
@@ -111,8 +117,8 @@ namespace IntellisenseGui.ViewModels
                 Stopwatch sw = Stopwatch.StartNew();
                 sw.Start();
                 Translator.IsUpdateDirectory = IsUpdateDirectory;
-
-                await Task.Run(() => Translator.Execute("123"));
+                Translator.ChangeMode= (Translator.changeMode)Enum.Parse(typeof(Translator.changeMode), ChangeMode);
+                await Task.Run(() => Translator.ExecuteAsync("123"));
 
                 sw.Stop();
                 Debug.WriteLine("===运行时间===" + sw.Elapsed.ToString());

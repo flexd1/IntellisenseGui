@@ -8,8 +8,10 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Shapes;
 using System.Xml;
 using static System.Net.WebRequestMethods;
+using Path = System.IO.Path;
 
 class Translator
 {
@@ -18,12 +20,12 @@ class Translator
     /// </summary>
     public enum changeMode
     {
-        替换并生成备份文件,
         生成语言文件夹,
+        替换并生成备份文件,
         仅生成翻译文件不替换
     }
 
-    private static changeMode ChangeMode { get; set; } = changeMode.生成语言文件夹;
+    public static changeMode ChangeMode { get; set; } = changeMode.生成语言文件夹;
 
     /// <summary>
     /// 翻译模式
@@ -52,7 +54,7 @@ class Translator
     /// </summary>
     public static string LanguageDirectoryName { get; set; } = "zh-cn";
 
-    public static void Execute(string path)
+    public static async Task ExecuteAsync(string path)
     {
         var translateData = LoadTranslateData();
         LogPrint($"已载入字典文件共：{translateData.Count}项");
@@ -61,73 +63,8 @@ class Translator
         //LogPrint("是否更新字典文件?(y/n)");
         if (IsUpdateDirectory)
         {
-            var source = new System.Collections.Concurrent.ConcurrentQueue<string>(LoadXmlData(path).Where(k => translateData.ContainsKey(k) == false));
-            LogPrint($"载入等待翻译的语句共计：{source.Count()}项");
-            var thread_num = 5;
-            var temp_dic = new System.Collections.Concurrent.ConcurrentDictionary<string, string>();
-            var task_list = new List<Task>();
-            for (int i = 0; i < thread_num; i++)
-            {
-                var task = new Task(() =>
-                {
-                    var translator = new AggregateTranslator();
-                    while (source.Count > 0)
-                    {
-                        try
-                        {
-                            var sb = new StringBuilder();
-                            var array = DequeueArray(source, 4000);
-                            foreach (var item in array)
-                            {
-                                sb.AppendLine(item);
-                                sb.AppendLine("@@@@");
-                            }
-
-                            var result = translator.TranslateAsync(sb.ToString(), "zh-cn").Result;
-                            if (result == null || string.IsNullOrWhiteSpace(result.Translation))
-                                continue;
-
-                            var result_dic = AnalyzeText(array, result.Translation);
-                            foreach (var item in result_dic)
-                            {
-                                LogPrint($"{temp_dic.Count}/{source.Count}\t{item.Key}\t{item.Value}");
-                                translateData[item.Key] = item.Value;
-                                temp_dic[item.Key] = item.Value;
-                                if (temp_dic.Count > 10000)
-                                {
-                                    lock (temp_dic)
-                                    {
-                                        if (temp_dic.Count > 10000)
-                                        {
-                                            var dic2 = temp_dic;
-                                            temp_dic = new System.Collections.Concurrent.ConcurrentDictionary<string, string>();
-                                            SaveDataFile(dic2);
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                        catch (Exception ex)
-                        {
-                            LogPrint(ex.Message);
-                        }
-                    }
-                }, TaskCreationOptions.LongRunning);
-                task.Start();
-                task_list.Add(task);
-            }
-
-            Task.WaitAll(task_list.ToArray());
-
-            if (temp_dic.Count >= 0)
-            {
-                SaveDataFile(temp_dic);
-                temp_dic.Clear();
-            }
-
-            LogPrint("更新字典完成");
+            await UpdateDirectoryAsync(translateData, AllFileName);
         }
-        LogPrint("使用字典翻译xml文件?(Y/N)");
 
         //执行翻译
         if (true)
@@ -137,6 +74,86 @@ class Translator
         }
 
     }
+
+    private static async Task UpdateDirectoryAsync(Dictionary<string,string> translateData,List<string> pathList)
+    {
+        LogPrint($"读取需要更新的字典文件共计：{pathList.Count()}项");
+        IEnumerable<string> AllXmlData=new List<string>();
+        // 读取所有xml文件
+        await Task.Run(() =>
+        {
+            foreach (var item in pathList)
+            {
+                AllXmlData = AllXmlData.Union(LoadXmlData(item));
+            }
+        });
+        var source = new System.Collections.Concurrent.ConcurrentQueue<string>(AllXmlData.Where(k => translateData.ContainsKey(k) == false));
+        LogPrint($"载入等待翻译的语句共计：{source.Count()}项");
+        var thread_num = 5;
+        var temp_dic = new System.Collections.Concurrent.ConcurrentDictionary<string, string>();
+        var task_list = new List<Task>();
+        for (int i = 0; i < thread_num; i++)
+        {
+            var task = new Task(() =>
+            {
+                var translator = new AggregateTranslator();
+                while (source.Count > 0)
+                {
+                    try
+                    {
+                        var sb = new StringBuilder();
+                        var array = DequeueArray(source, 4000);
+                        foreach (var item in array)
+                        {
+                            sb.AppendLine(item);
+                            sb.AppendLine("@@@@");
+                        }
+
+                        var result = translator.TranslateAsync(sb.ToString(), "zh-cn").Result;
+                        if (result == null || string.IsNullOrWhiteSpace(result.Translation))
+                            continue;
+
+                        var result_dic = AnalyzeText(array, result.Translation);
+                        foreach (var item in result_dic)
+                        {
+                            LogPrint($"{temp_dic.Count}/{source.Count}\t{item.Key}\t{item.Value}");
+                            translateData[item.Key] = item.Value;
+                            temp_dic[item.Key] = item.Value;
+                            if (temp_dic.Count > 10000)
+                            {
+                                lock (temp_dic)
+                                {
+                                    if (temp_dic.Count > 10000)
+                                    {
+                                        var dic2 = temp_dic;
+                                        temp_dic = new System.Collections.Concurrent.ConcurrentDictionary<string, string>();
+                                        SaveDataFile(dic2);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        LogPrint(ex.Message);
+                    }
+                }
+            }, TaskCreationOptions.LongRunning);
+            task.Start();
+            task_list.Add(task);
+        }
+
+        Task.WaitAll(task_list.ToArray());
+
+        if (temp_dic.Count >= 0)
+        {
+            SaveDataFile(temp_dic);
+            temp_dic.Clear();
+        }
+
+        LogPrint("更新字典完成");
+    }
+
     /// <summary>
     /// 读取xml
     /// </summary>
@@ -412,10 +429,18 @@ class Translator
     /// <returns></returns>
     public static List<string> GetAllFileName(string path, string fileType = "xml")
     {
-        if (System.IO.File.Exists(path) && System.IO.Path.GetExtension(path) == ".xml")
+        // 添加文件
+        var addFile = () =>
+        {
+            if (!AllFileName.Contains(path))
+            {
+                AllFileName.Add(path);
+            }
+        };
+        if (System.IO.File.Exists(path) && System.IO.Path.GetExtension(path) == $".{fileType}")
         {
             // 用户输入的是一个文件路径
-            AllFileName.Add(path);
+            addFile.Invoke();
         }
         else if (Directory.Exists(path))
         {
@@ -423,7 +448,7 @@ class Translator
             var pathList = Directory.GetFiles(path, @$"*.{fileType}", SearchOption.AllDirectories);
             foreach (var item in pathList)
             {
-                AllFileName.Add(item);
+                addFile.Invoke();
             }
         }
         else
