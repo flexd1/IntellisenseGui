@@ -80,6 +80,23 @@ namespace IntellisenseGui.ViewModels
         public DelegateCommand StartCommand { get; }
         public DelegateCommand DeleteFileCommand { get; }
         public DelegateCommand<string> AddFileCommand { get; }
+
+        /// <summary>
+        /// 翻译模式列表
+        /// </summary>
+        public List<string> TranslateModeList { get; set; }
+
+        /// <summary>
+        ///翻译模式
+        /// </summary>
+        private string translateMode;
+
+        public string TranslateMode
+        {
+            get { return translateMode; }
+            set { SetProperty(ref translateMode, value); }
+        }
+
         /// <summary>
         /// 替换模式列表
         /// </summary>
@@ -100,6 +117,11 @@ namespace IntellisenseGui.ViewModels
         {
             // 传实例
             Translator.GetMainVM(this);
+
+            Translator.LogPrint("程序启动");
+
+            // 初始化combobox
+            InitComboBox();
 
             // 拖拽文件进入listbox
             DropFileCommand = new DelegateCommand<DragEventArgs>(DropFile);
@@ -128,6 +150,11 @@ namespace IntellisenseGui.ViewModels
             // 添加文件
             AddFileCommand = new((e) =>
             {
+                if (string.IsNullOrWhiteSpace(e))
+                {
+                    MessageBox.Show("请输入文件或文件夹路径","提示",MessageBoxButton.OK,MessageBoxImage.Error);
+                    return;
+                }
                 PathList = new(PathList.Union(Translator.GetAllFileName(e)));
             });
 
@@ -137,11 +164,27 @@ namespace IntellisenseGui.ViewModels
                 Debug.WriteLine("delete");
             });
 
+            
+        }
+        
+        /// <summary>
+        /// 初始化下拉框选项
+        /// </summary>
+        private void InitComboBox()
+        {
             // 初始化替换模式列表
             ChangeModeList = Enum.GetValues(typeof(Translator.changeMode)).OfType<Translator.changeMode>().Select(v => v.ToString()).ToList();
+            ChangeModeList[0] += "(推荐)";
 
+            // 初始化翻译模式列表
+            TranslateModeList = Enum.GetValues(typeof(Translator.translateMode)).OfType<Translator.translateMode>().Select(v => v.ToString()).ToList();
+            TranslateModeList[0] += "(推荐)";
         }
 
+        /// <summary>
+        /// 拖入文件事件
+        /// </summary>
+        /// <param name="e"></param>
         private void DropFile(DragEventArgs e)
         {
             if (e.Data.GetDataPresent(DataFormats.FileDrop))

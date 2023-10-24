@@ -5,12 +5,12 @@
     xmlns:i="http://schemas.microsoft.com/xaml/behaviors"
     xmlns:prism="http://prismlibrary.com/"
     Title="{Binding Title}"
-    MinWidth="700"
-    MinHeight="400"
     Width="700"
     Height="400"
-    WindowStartupLocation="CenterScreen"
-    prism:ViewModelLocator.AutoWireViewModel="True">
+    MinWidth="700"
+    MinHeight="400"
+    prism:ViewModelLocator.AutoWireViewModel="True"
+    WindowStartupLocation="CenterScreen">
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="auto" />
@@ -21,27 +21,31 @@
 
         <!--  选项框  -->
         <StackPanel Orientation="Horizontal">
-            <CheckBox
-                VerticalAlignment="Center"
-                Content="是否更新字典文件"
-                IsChecked="{Binding IsUpdateDirectory}" />
             <TextBlock
                 Margin="10,0"
                 VerticalAlignment="Center"
                 Text="翻译模式:" />
-            <ComboBox VerticalAlignment="Center" SelectedIndex="0">
-                <ComboBoxItem Content="翻译并替换文件" />
-                <ComboBoxItem Content="仅翻译" />
-            </ComboBox>
+            <ComboBox
+                VerticalAlignment="Center"
+                ItemsSource="{Binding TranslateModeList}"
+                SelectedIndex="0"
+                SelectedValue="{Binding TranslateMode}" />
             <TextBlock
                 Margin="10,0"
                 VerticalAlignment="Center"
                 Text="替换规则:" />
             <ComboBox
-                SelectedIndex="0"
                 VerticalAlignment="Center"
                 ItemsSource="{Binding ChangeModeList}"
-                SelectedValue="{Binding ChangeMode}"/>
+                SelectedIndex="0"
+                SelectedValue="{Binding ChangeMode}" />
+            <StackPanel Margin="10,0" Orientation="Horizontal">
+                <TextBlock
+                    Margin="0,0,5,0"
+                    VerticalAlignment="Center"
+                    Text="是否更新字典文件" />
+                <CheckBox VerticalAlignment="Center" IsChecked="{Binding IsUpdateDirectory}" />
+            </StackPanel>
         </StackPanel>
         <StackPanel HorizontalAlignment="Right" Orientation="Horizontal">
             <Button
@@ -57,11 +61,14 @@
                 Content="执行" />
         </StackPanel>
 
-        
+
         <StackPanel Grid.Row="1" Orientation="Horizontal">
             <TextBox Name="tbFile" Width="500">
                 <TextBox.InputBindings>
-                    <KeyBinding Command="{Binding AddFileCommand}" CommandParameter="{Binding ElementName=tbFile, Path=Text}" Key="Enter" />
+                    <KeyBinding
+                        Key="Enter"
+                        Command="{Binding AddFileCommand}"
+                        CommandParameter="{Binding ElementName=tbFile, Path=Text}" />
                 </TextBox.InputBindings>
             </TextBox>
             <Button
@@ -89,7 +96,13 @@
                 </DataTemplate>
             </ListBox.ItemTemplate>
         </ListBox>
-        <TextBox Text="{Binding LogText,Mode=TwoWay}" TextWrapping="Wrap" AcceptsReturn="True" VerticalScrollBarVisibility="Visible" IsReadOnly="True" Grid.Row="3" />
+        <TextBox
+            Grid.Row="3"
+            AcceptsReturn="True"
+            IsReadOnly="True"
+            Text="{Binding LogText, Mode=TwoWay}"
+            TextWrapping="Wrap"
+            VerticalScrollBarVisibility="Visible" />
         <!--<ContentControl prism:RegionManager.RegionName="ContentRegion" />-->
     </Grid>
 </Window>

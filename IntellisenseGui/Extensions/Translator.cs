@@ -5,9 +5,11 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Shapes;
 using System.Xml;
 using static System.Net.WebRequestMethods;
@@ -21,23 +23,23 @@ class Translator
     public enum changeMode
     {
         生成语言文件夹,
-        替换并生成备份文件,
-        仅生成翻译文件不替换
+        翻译并替换原文件,
+        仅生成翻译文件不替换原文件
     }
 
-    public static changeMode ChangeMode { get; set; } = changeMode.生成语言文件夹;
+    public static changeMode ChangeMode { get; set; } = 0;
 
     /// <summary>
     /// 翻译模式
     /// </summary>
-    enum translateMode
+    public enum translateMode
     {
         译文和原文,
         原文和译文,
         仅译文
     }
 
-    private static translateMode TranslateMode { get; set; } = translateMode.译文和原文;
+    private static translateMode TranslateMode { get; set; } = 0;
 
     /// <summary>
     /// 是否更新字典
@@ -54,31 +56,60 @@ class Translator
     /// </summary>
     public static string LanguageDirectoryName { get; set; } = "zh-cn";
 
+    /// <summary>
+    /// 数据字典缓存
+    /// </summary>
+    /// <param name="path"></param>
+    /// <returns></returns>
+    private static Dictionary<string, string> TranslateData { get; set; }
+
     public static async Task ExecuteAsync(string path)
     {
-        var translateData = LoadTranslateData();
-        LogPrint($"已载入字典文件共：{translateData.Count}项");
-        LogPrint("请输入需要翻译的文件夹路径（会自动扫描子目录内的文件）");
-
-        //LogPrint("是否更新字典文件?(y/n)");
+        // 是否更新字典文件
+        int UpdateDirectoryCount = 0;
         if (IsUpdateDirectory)
         {
-            await UpdateDirectoryAsync(translateData, AllFileName);
+            UpdateDirectoryCount = await UpdateDirectoryAsync(TranslateData, AllFileName);
+        }
+
+        // 载入字典
+        if (TranslateData is null || UpdateDirectoryCount > 0)
+        {
+            TranslateData = LoadTranslateData();
+            LogPrint($"已载入字典文件共：{TranslateData.Count}项");
         }
 
         //执行翻译
         if (true)
         {
-            TranslateXml(translateData, path);
-            LogPrint("翻译完成，请检查translate文件夹，如需使用请手动复制替换原有文件。");
+            TranslateXml(TranslateData, path);
+
+            #region 翻译完成日志
+            if (ChangeMode == (changeMode)0)
+            {
+                // 2.保存到语言文件夹
+                // 保存到输入文件的路径中
+                LogPrint("生成语言文件夹并翻译完成，请重启Visual Studio");
+            }
+            else if (ChangeMode == (changeMode)1)
+            {
+                LogPrint("翻译并替换完成，请重启Visual Studio");
+            }
+            else if (ChangeMode == (changeMode)2)
+            {
+                // 1.生成翻译文件j夹
+                // 保存到debug中
+                LogPrint("翻译完成，请检查translate文件夹，如需使用请手动复制替换原有文件，并重启Visual Studio");
+            }
+            #endregion
         }
 
     }
 
-    private static async Task UpdateDirectoryAsync(Dictionary<string,string> translateData,List<string> pathList)
+    private static async Task<int> UpdateDirectoryAsync(Dictionary<string, string> translateData, List<string> pathList)
     {
         LogPrint($"读取需要更新的字典文件共计：{pathList.Count()}项");
-        IEnumerable<string> AllXmlData=new List<string>();
+        IEnumerable<string> AllXmlData = new List<string>();
         // 读取所有xml文件
         await Task.Run(() =>
         {
@@ -152,6 +183,7 @@ class Translator
         }
 
         LogPrint("更新字典完成");
+        return source.Count();
     }
 
     /// <summary>
@@ -283,9 +315,9 @@ class Translator
                 }
 
 
-                if (ChangeMode == changeMode.仅生成翻译文件不替换)
+                if (ChangeMode == (changeMode)2)
                 {
-                    // 1.生成翻译文件j夹
+                    // 1.仅生成翻译文件不替换原文件
                     // 保存到debug中
                     System.IO.Directory.CreateDirectory(Path.Combine(@".\translate"));
                     System.IO.Directory.CreateDirectory(Path.Combine(@".\backup"));
@@ -293,15 +325,16 @@ class Translator
                     var outFilename = Path.Combine(@".\translate", fileInfo.Name);
                     doc.Save(outFilename);
                 }
-                else if (ChangeMode == changeMode.生成语言文件夹)
+                else if (ChangeMode == (changeMode)0)
                 {
-                    // 2.保存到语言文件夹
+                    // 2.生成语言文件夹
                     // 保存到输入文件的路径中
                     System.IO.Directory.CreateDirectory(Path.Combine(Path.GetDirectoryName(filename), LanguageDirectoryName));
                     var newOutFileName = Path.Combine(Path.GetDirectoryName(filename), LanguageDirectoryName, fileInfo.Name);
                     doc.Save(newOutFileName);
                 }
-                else if (ChangeMode == changeMode.替换并生成备份文件)
+                else if (ChangeMode == (changeMode)1)
+                // 翻译并替换原文件
                 {
                     doc.Save(filename);
                 }
@@ -430,17 +463,17 @@ class Translator
     public static List<string> GetAllFileName(string path, string fileType = "xml")
     {
         // 添加文件
-        var addFile = () =>
+        var addFile = (string xmlFile) =>
         {
-            if (!AllFileName.Contains(path))
+            if (!AllFileName.Contains(xmlFile))
             {
-                AllFileName.Add(path);
+                AllFileName.Add(xmlFile);
             }
         };
         if (System.IO.File.Exists(path) && System.IO.Path.GetExtension(path) == $".{fileType}")
         {
             // 用户输入的是一个文件路径
-            addFile.Invoke();
+            addFile.Invoke(path);
         }
         else if (Directory.Exists(path))
         {
@@ -448,7 +481,7 @@ class Translator
             var pathList = Directory.GetFiles(path, @$"*.{fileType}", SearchOption.AllDirectories);
             foreach (var item in pathList)
             {
-                addFile.Invoke();
+                addFile.Invoke(item);
             }
         }
         else
