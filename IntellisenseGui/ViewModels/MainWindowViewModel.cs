@@ -104,6 +104,17 @@ namespace IntellisenseGui.ViewModels
         }
 
         /// <summary>
+        ///翻译模式index
+        /// </summary>
+        private int translateModeIndex = 0;
+
+        public int TranslateModeIndex
+        {
+            get { return translateModeIndex; }
+            set { SetProperty(ref translateModeIndex, value); }
+        }
+
+        /// <summary>
         /// 替换模式列表
         /// </summary>
         public List<string> ChangeModeList { get; set; }
@@ -117,6 +128,17 @@ namespace IntellisenseGui.ViewModels
         {
             get { return changeMode; }
             set { SetProperty(ref changeMode, value); }
+        }
+
+        /// <summary>
+        /// 替换模式index
+        /// </summary>
+        private int changeModeIndex = 0;
+
+        public int ChangeModeIndex
+        {
+            get { return changeModeIndex; }
+            set { SetProperty(ref changeModeIndex, value); }
         }
 
         /// <summary>
@@ -149,9 +171,8 @@ namespace IntellisenseGui.ViewModels
             {
                 Stopwatch sw = Stopwatch.StartNew();
                 sw.Start();
-                Translator.IsUpdateDirectory = IsUpdateDirectory;
-                Translator.ChangeMode = (Translator.changeMode)Enum.Parse(typeof(Translator.changeMode), ChangeMode);
-                await Task.Run(() => Translator.ExecuteAsync("123"));
+
+                await Task.Run(() => Translator.ExecuteAsync((Translator.changeMode)ChangeModeIndex, (Translator.translateMode)TranslateModeIndex, IsUpdateDirectory));
 
                 sw.Stop();
                 Debug.WriteLine("===运行时间===" + sw.Elapsed.ToString());

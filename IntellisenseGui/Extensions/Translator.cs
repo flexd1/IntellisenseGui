@@ -40,7 +40,7 @@ class Translator
         仅译文
     }
 
-    private static translateMode TranslateMode { get; set; } = 0;
+    public static translateMode TranslateMode { get; set; } = 0;
 
     /// <summary>
     /// 是否更新字典
@@ -64,8 +64,14 @@ class Translator
     /// <returns></returns>
     private static Dictionary<string, string> TranslateData { get; set; }
 
-    public static async Task ExecuteAsync(string path)
+
+    public static async Task ExecuteAsync(changeMode changeMode, translateMode translateMode,bool isUpdateDirectory)
     {
+
+        Translator.IsUpdateDirectory = isUpdateDirectory;
+        Translator.ChangeMode = changeMode;
+        Translator.TranslateMode = translateMode;
+
         LogPrint($"翻译模式：{TranslateMode} 替换模式:{ChangeMode}");
 
         // 是否更新字典文件
@@ -85,7 +91,7 @@ class Translator
         //执行翻译
         if (true)
         {
-            TranslateXml(TranslateData, path);
+            TranslateXml(TranslateData);
 
             #region 翻译完成日志
             if (ChangeMode == (changeMode)0)
@@ -285,7 +291,7 @@ class Translator
     /// </summary>
     /// <param name="dic"></param>
     /// <param name="path"></param>
-    public static void TranslateXml(Dictionary<string, string> dic, string path)
+    public static void TranslateXml(Dictionary<string, string> dic)
     {
         XmlReaderSettings settings = new XmlReaderSettings();
         settings.DtdProcessing = DtdProcessing.Parse;
