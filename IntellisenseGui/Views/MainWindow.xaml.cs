@@ -1,7 +1,9 @@
-﻿using System;
+﻿using FileDragDrop;
+using System;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Windows;
+using System.Windows.Forms.Integration;
 using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
@@ -16,7 +18,7 @@ namespace IntellisenseGui.Views
     {
         public MainWindow()
         {
-            InitializeComponent();
+            InitializeComponent();     
         }
     }
 }

@@ -14,6 +14,12 @@ using System.Runtime.ConstrainedExecution;
 using System.Windows.Shapes;
 using System.Text;
 using DryIoc;
+using FileDragDrop;
+using ImTools;
+using System.Windows.Forms.Integration;
+using System.Runtime.InteropServices;
+using System.Windows.Interop;
+using IntellisenseGui.Views;
 
 namespace IntellisenseGui.ViewModels
 {
@@ -113,6 +119,11 @@ namespace IntellisenseGui.ViewModels
             set { SetProperty(ref changeMode, value); }
         }
 
+        /// <summary>
+        /// MainWindow实例
+        /// </summary>
+        private MainWindow _mainWindow;
+
         public MainWindowViewModel()
         {
             // 传实例
@@ -139,7 +150,7 @@ namespace IntellisenseGui.ViewModels
                 Stopwatch sw = Stopwatch.StartNew();
                 sw.Start();
                 Translator.IsUpdateDirectory = IsUpdateDirectory;
-                Translator.ChangeMode= (Translator.changeMode)Enum.Parse(typeof(Translator.changeMode), ChangeMode);
+                Translator.ChangeMode = (Translator.changeMode)Enum.Parse(typeof(Translator.changeMode), ChangeMode);
                 await Task.Run(() => Translator.ExecuteAsync("123"));
 
                 sw.Stop();
@@ -152,7 +163,7 @@ namespace IntellisenseGui.ViewModels
             {
                 if (string.IsNullOrWhiteSpace(e))
                 {
-                    MessageBox.Show("请输入文件或文件夹路径","提示",MessageBoxButton.OK,MessageBoxImage.Error);
+                    MessageBox.Show("请输入文件或文件夹路径", "提示", MessageBoxButton.OK, MessageBoxImage.Error);
                     return;
                 }
                 PathList = new(PathList.Union(Translator.GetAllFileName(e)));
@@ -164,9 +175,9 @@ namespace IntellisenseGui.ViewModels
                 Debug.WriteLine("delete");
             });
 
-            
+
         }
-        
+
         /// <summary>
         /// 初始化下拉框选项
         /// </summary>
@@ -197,6 +208,111 @@ namespace IntellisenseGui.ViewModels
             }
         }
 
+        /// <summary>
+        /// 拖入winform事件
+        /// </summary>
+        /// <param name="e"></param>
+        private void DropFile2(ElevatedDragDropArgs e)
+        {
+            foreach (var path in e.Files)
+            {
+                PathList = new(PathList.Union(Translator.GetAllFileName(path)));
+            }
+        }
 
+        public void View_Loaded(object sender, EventArgs e)
+        {
+            _mainWindow = (MainWindow)sender;
+            this.Button_ShowDragDropWindowClick(this, EventArgs.Empty);
+            //窗口位置变更
+            _mainWindow.LocationChanged += View_LocationChanged;
+        }
+
+
+        [DllImport("user32.dll")]
+        private static extern int SetWindowLong(HandleRef hWnd, int nIndex, int dwNewLong);
+
+        //App管理列表(Form)
+        private AppMangerForm appMangerListBoxForm { set; get; }
+
+        /// <summary>
+        /// 窗口位置变化
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        public void View_LocationChanged(object sender, EventArgs e)
+        {
+            //临时坐标计算
+            double left = _mainWindow.Left + _mainWindow.ActualWidth;
+            //对象验证
+            if (appMangerListBoxForm != null)
+            {
+                appMangerListBoxForm.Left = (int)left;
+                appMangerListBoxForm.Top = (int)_mainWindow.Top;
+            }
+        }
+
+        /// <summary>
+        /// sets the owner of a System.Windows.Forms.Form to a System.Windows.Window
+        /// </summary>
+        /// <param name="form"></param>
+        /// <param name="owner"></param>
+        public static void SetOwner(System.Windows.Forms.Form form, System.Windows.Window owner)
+        {
+            WindowInteropHelper helper = new WindowInteropHelper(owner);
+            SetWindowLong(new HandleRef(form, form.Handle), -8, helper.Handle.ToInt32());
+        }
+
+        /// <summary>
+        /// 显示拖拽窗口
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void Button_ShowDragDropWindowClick(object sender, EventArgs e)
+        {
+            //获取主窗口位置
+            var startLeft = _mainWindow.Left + _mainWindow.ActualWidth;
+            var startTop = _mainWindow.Top;
+
+            //窗口验证
+            if (this.appMangerListBoxForm == null)
+            {
+                //消息转发到WinForm
+                //注:添加WindowsFormsIntegration引用
+                WindowsFormsHost.EnableWindowsFormsInterop();
+                //显示窗口
+                this.appMangerListBoxForm = new AppMangerForm(DropFile2);
+                this.appMangerListBoxForm.Left = (int)startLeft;
+                this.appMangerListBoxForm.Top = (int)startTop;
+
+                //设置窗口所有者
+                SetOwner(this.appMangerListBoxForm, _mainWindow);
+            }
+
+            //更新位置
+            this.appMangerListBoxForm.Top = (int)startTop;
+            this.appMangerListBoxForm.Left = (int)startLeft;
+
+            //显示窗口
+            this.appMangerListBoxForm.Show();
+        }
+
+        /// <summary>
+        /// 隐藏拖拽窗口
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void Button_HideDragDropWindowClick(object sender, RoutedEventArgs e)
+        {
+            if (appMangerListBoxForm != null)
+            {
+                this.appMangerListBoxForm.Hide();
+            }
+        }
+
+        private void Window_Loaded(object sender, RoutedEventArgs e)
+        {
+            this.Button_ShowDragDropWindowClick(this, EventArgs.Empty);
+        }
     }
 }

@@ -6,6 +6,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Security.Principal;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
@@ -65,6 +66,8 @@ class Translator
 
     public static async Task ExecuteAsync(string path)
     {
+        LogPrint($"翻译模式：{TranslateMode} 替换模式:{ChangeMode}");
+
         // 是否更新字典文件
         int UpdateDirectoryCount = 0;
         if (IsUpdateDirectory)
