@@ -76,16 +76,17 @@ class Translator
 
         // 是否更新字典文件
         int UpdateDirectoryCount = 0;
-        if (IsUpdateDirectory)
-        {
-            UpdateDirectoryCount = await UpdateDirectoryAsync(TranslateData, AllFileName);
-        }
 
         // 载入字典
         if (TranslateData is null || UpdateDirectoryCount > 0)
         {
             TranslateData = LoadTranslateData();
             LogPrint($"已载入字典文件共：{TranslateData.Count}项");
+        }
+
+        if (IsUpdateDirectory)
+        {
+            UpdateDirectoryCount = await UpdateDirectoryAsync(TranslateData, AllFileName);
         }
 
         //执行翻译
